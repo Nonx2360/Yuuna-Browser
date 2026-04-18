@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Yuuna-chan</title>
+  <style>
+    body {
+      width: 350px;
+      height: 500px;
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      display: flex;
+      flex-direction: column;
+      background-color: #fffafb;
+    }
+    .header {
+      background-color: #ffb6c1;
+      color: white;
+      padding: 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: bold;
+      font-size: 1.2em;
+      border-bottom: 2px solid #ff9cb3;
+    }
+    .thought {
+      color: #888;
+      font-style: italic;
+      background-color: #f9f9f9;
+      padding: 6px;
+      border-radius: 6px;
+      margin-bottom: 6px;
+      font-size: 0.85em;
+      border: 1px solid #eee;
+    }
+    .chat-container {
+      flex: 1;
+      padding: 10px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .message {
+      max-width: 80%;
+      padding: 10px;
+      border-radius: 12px;
+      font-size: 0.95em;
+      line-height: 1.4;
+      word-wrap: break-word;
+    }
+    .message.user {
+      align-self: flex-end;
+      background-color: #f0f0f0;
+      color: #333;
+      border-bottom-right-radius: 2px;
+    }
+    .message.yuuna {
+      align-self: flex-start;
+      background-color: #ffe4e1;
+      color: #5a3d42;
+      border-bottom-left-radius: 2px;
+    }
+    .input-area {
+      display: flex;
+      padding: 10px;
+      background-color: #ffffff;
+      border-top: 1px solid #ffe4e1;
+    }
+    .input-area input {
+      flex: 1;
+      padding: 10px;
+      border: 1px solid #ffb6c1;
+      border-radius: 20px;
+      outline: none;
+    }
+    .input-area button {
+      margin-left: 8px;
+      padding: 10px 15px;
+      background-color: #ffb6c1;
+      color: white;
+      border: none;
+      border-radius: 20px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .input-area button:hover {
+      background-color: #ff9cb3;
+    }
+    /* Simple CSS loading spinner */
+    .loader {
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #ffb6c1;
+      border-radius: 50%;
+      width: 14px;
+      height: 14px;
+      animation: spin 1s linear infinite;
+      align-self: center;
+      display: none;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div>Yuuna-chan ✨</div>
+    <label style="font-size: 0.6em; font-weight: normal; cursor: pointer;">
+      <input type="checkbox" id="toggleThoughts" /> Show Thoughts
+    </label>
+  </div>
+  <div class="chat-container" id="chat">
+    <div class="message yuuna">Hey! I'm here. What are we looking at today?</div>
+  </div>
+  <div class="input-area">
+    <input type="text" id="userInput" placeholder="Say something or ask about the page..." autofocus>
+    <button id="sendBtn">Send</button>
+    <div class="loader" id="loader"></div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>
