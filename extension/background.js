@@ -3,6 +3,9 @@
 
 let chatHistory = [];
 
+// Make the extension open in a side panel instead of a popup
+chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch((error) => console.error(error));
+
 // ============================================================
 // MESSAGE ROUTER — handles both chat and agent requests
 // ============================================================
@@ -243,14 +246,12 @@ class AgentLoop {
     switch (parsed.type) {
       case "NAVIGATE":
         return this._execNavigateAndRead(parsed.url);
-      case "SEARCH":
+      case "GOOGLE_SEARCH":
         return this._execNavigateAndRead(`https://www.google.com/search?q=${encodeURIComponent(parsed.query)}`);
       case "CLICK":
         return this._execContent({ type: "AGENT_CLICK",  target:    parsed.target });
       case "TYPE":
-        return this._execContent({ type: "AGENT_TYPE",   selector:  parsed.selector, text: parsed.text });
-      case "PRESS_ENTER":
-        return this._execContent({ type: "AGENT_KEY",    selector:  parsed.selector });
+        return this._execContent({ type: "AGENT_TYPE_ENTER", selector: parsed.selector, text: parsed.text });
       case "SCROLL":
         return this._execContent({ type: "AGENT_SCROLL", direction: parsed.direction });
       case "EXTRACT":

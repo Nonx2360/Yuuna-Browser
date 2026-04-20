@@ -46,9 +46,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           placeholder: el.placeholder || null,
           href: el.tagName === 'A' ? el.href : null,
           selector: _buildSelector(el),
+          is_search: (el.type === 'search' || (el.id && el.id.toLowerCase().includes('search')) || (el.placeholder && el.placeholder.toLowerCase().includes('search')))
         };
 
-        if (item.text || item.placeholder || item.href) {
+        if (item.text || item.placeholder || item.href || item.is_search) {
           interactiveElements.push(item);
         }
       });
@@ -160,7 +161,55 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true;
   }
 
-  // ── Agent: Press Enter ────────────────────────────────────────────────────
+  // ── Agent: Type and Enter ────────────────────────────────────────────────
+  if (request.type === "AGENT_TYPE_ENTER") {
+    try {
+      const { selector, text } = request;
+      let el = null;
+      try { el = document.querySelector(selector); } catch (_) {}
+      
+      if (!el) {
+        const inputs = document.querySelectorAll('input:not([type="hidden"]), textarea');
+        const lower = selector.toLowerCase();
+        for (const inp of inputs) {
+          const ph = (inp.placeholder || inp.getAttribute('aria-label') || inp.name || inp.id || '').toLowerCase();
+          if (ph.includes(lower)) { el = inp; break; }
+        }
+      }
+
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.focus();
+
+        const nativeSetter = Object.getOwnPropertyDescriptor(
+          el.tagName === 'TEXTAREA' ? window.HTMLTextAreaElement.prototype : window.HTMLInputElement.prototype,
+          'value'
+        )?.set;
+        if (nativeSetter) nativeSetter.call(el, text);
+        else el.value = text;
+
+        el.dispatchEvent(new Event('input',  { bubbles: true }));
+        el.dispatchEvent(new Event('change', { bubbles: true }));
+
+        // Immediately follow with Enter
+        const opts = { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true };
+        el.dispatchEvent(new KeyboardEvent('keydown',  opts));
+        el.dispatchEvent(new KeyboardEvent('keypress', opts));
+        el.dispatchEvent(new KeyboardEvent('keyup',    opts));
+        const form = el.closest('form');
+        if (form) {
+          try { form.requestSubmit(); } catch (_) { form.submit(); }
+        }
+
+        sendResponse({ success: true, typed: text, submitted: true, onto: _buildSelector(el) });
+      } else {
+        sendResponse({ success: false, error: `Input not found: "${selector}"` });
+      }
+    } catch (e) {
+      sendResponse({ success: false, error: e.message });
+    }
+    return true;
+  }
   if (request.type === "AGENT_KEY") {
     try {
       const selector = request.selector;

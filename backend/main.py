@@ -59,19 +59,17 @@ Do NOT explain these tags to the user. Only use them when explicitly asked to pe
 # =============================================
 AGENT_SYSTEM_PROMPT = """You are an autonomous browser agent named Yuuna. Complete the user's goal by controlling the browser step by step.
 
-Each step you receive:
-- GOAL: What the user wants
-- HISTORY: What you've done so far and what you observed
-- CURRENT PAGE: URL, title, visible text, interactive elements
-
 ## STRICT RESPONSE FORMAT
-Output EXACTLY ONE action line. Nothing before it. Nothing after it.
+- Output EXACTLY ONE action line.
+- START YOUR RESPONSE DIRECTLY WITH THE OPENING BRACKET [.
+- DO NOT SAY "Sure!", "Thinking:", OR ANY OTHER CHAT.
+- DO NOT EXPLAIN YOUR ACTIONS.
+- IF YOU DO NOT FOLLOW THIS FORMAT, YOU WILL FAIL.
 
 [ACTION: NAVIGATE | https://url]
-[ACTION: SEARCH | query]
+[ACTION: GOOGLE_SEARCH | query]
 [ACTION: CLICK | text or selector]
 [ACTION: TYPE | selector | text]
-[ACTION: PRESS_ENTER]
 [ACTION: SCROLL | down]
 [ACTION: SCROLL | up]
 [ACTION: READ_PAGE]
@@ -89,15 +87,17 @@ Output EXACTLY ONE action line. Nothing before it. Nothing after it.
    - GOOD: [ACTION: DONE | Here are the top 5 posts on r/gaming: 1. "Post title" (5.2k upvotes) 2. ...]
 
 3. **Workflow for information tasks (summaries, lists, prices):**
-   Step 1 → NAVIGATE or SEARCH to the target page
-   Step 2 → READ_PAGE to get its content
+   Step 1 → NAVIGATE or GOOGLE_SEARCH to the target page
+   Step 2 → READ_PAGE to get its content (wait for page to load)
    Step 3 → DONE with the full answer based on what you read
 
-4. **One action per response. No explanations. No markdown outside DONE.**
+4. **Detour Rule**: If the user asks you to go to a specific site (e.g. Wikipedia, Amazon), STAY ON THAT SITE. Do not use GOOGLE_SEARCH once you are there. Use the search bar on the site.
 
-5. After typing, use PRESS_ENTER to submit.
+5. **Searching & Typing**: The [ACTION: TYPE] command automatically presses Enter for you. 
+   - ALWAYS look for input elements with IDs like "search", "query", or "q".
+   - For Wikipedia, the search box is usually "#searchInput".
 
-6. If a page is blank or has no content, NAVIGATE to a better source.
+6. **One action per response. No explanations. No markdown outside DONE.**
 
 ## DONE answer style
 Write in Yuuna's voice — warm, friendly, slightly playful. Use lists or tables when presenting structured data.
@@ -175,15 +175,25 @@ async def chat_stream(request: AgentRequest):
 @app.post("/api/agent_step")
 async def agent_step(request: AgentStepRequest):
     """
-    Single-step agentic decision endpoint.
-    The extension calls this after every action with the new page state.
-    Returns one action tag for the agent to execute next.
+    Single-step agentic decision endpoint with improved loop protection.
     """
     try:
         # REGRESSION FIX: Reducing context size to prevent gemma2b from returning empty actions
         decision_page_state = re.sub(r"Page Text \(first \d+ chars\):.*", 
                                      f"Page Text (first 1200 chars):\n{request.current_page_state[:1200]}", 
                                      request.current_page_state)
+
+        # Loop protection: if the last 3 steps were all [READ_PAGE], 
+        # add a warning to the observation to wake the agent up.
+        consecutive_reads = 0
+        for s in reversed(request.steps_taken):
+            if "[ACTION: READ_PAGE]" in s.get("action", "") or "READ_PAGE" in s.get("action", ""):
+                consecutive_reads += 1
+            else:
+                break
+        
+        if consecutive_reads >= 3:
+            decision_page_state += "\n\nCRITICAL WARNING: You have read this same page 3 times in a row without making progress. DO NOT use READ_PAGE again. Try a different action like CLICK, TYPE_ENTER, or NAVIGATE to move forward!"
 
         raw_action = await generate_agent_response(
             goal=request.goal,
@@ -192,8 +202,13 @@ async def agent_step(request: AgentStepRequest):
             system_prompt=AGENT_SYSTEM_PROMPT,
         )
 
+        # REGRESSION FIX: Handling truncation errors from small models
+        # If the model gets cut off or forgets the closing bracket, we repair it
+        if raw_action.startswith("[ACTION:") and "]" not in raw_action:
+            print(f"[Agent] Repairing truncated action tag: {raw_action!r}")
+            raw_action += "]"
+
         # Extract the [ACTION: ...] tag from the response
-        # The model might wrap it in markdown or add extra text — we extract robustly
         action_match = re.search(
             r"\[ACTION:\s*(\w+)\s*(?:\|\s*([\s\S]*?))?\]",
             raw_action,
@@ -203,11 +218,11 @@ async def agent_step(request: AgentStepRequest):
         if action_match:
             action_tag = action_match.group(0)
         elif not raw_action.strip():
-            # If model returned absolutely nothing, force a READ_PAGE to wake it up
+            # If model returned absolutely nothing, force a READ_PAGE and add a hint for the next step
             print("[Agent] Model returned empty string. Forcing READ_PAGE fallback.")
             action_tag = "[ACTION: READ_PAGE]"
         else:
-            # If model didn't follow format, force a DONE with its raw output as the answer
+            # If model didn't follow format, force a DONE with its raw output
             print(f"[Agent] Model did not return valid action tag. Raw: {raw_action!r}")
             action_tag = f"[ACTION: DONE | {raw_action.strip()[:500]}]"
 

@@ -101,7 +101,7 @@ What is your next single action?"""
         "stream": False,
         "options": {
             "temperature": 0.1,   # Low temp for deterministic action decisions
-            "num_predict": 256,   # We only need a short action tag
+            "num_predict": 1024,   # Extra room for preamble or long URLs
         }
     }
 
