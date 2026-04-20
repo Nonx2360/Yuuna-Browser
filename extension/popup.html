@@ -5,35 +5,45 @@
   <title>Yuuna-chan</title>
   <style>
     body {
-      width: 350px;
-      height: 500px;
+      width: 370px;
+      height: 520px;
       margin: 0;
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       display: flex;
       flex-direction: column;
       background-color: #fffafb;
     }
+
+    /* ── Header ─────────────────────────────────────────────── */
     .header {
-      background-color: #ffb6c1;
+      background: linear-gradient(135deg, #ffb6c1, #ff9cb3);
       color: white;
-      padding: 15px;
+      padding: 12px 15px;
       display: flex;
       justify-content: space-between;
       align-items: center;
       font-weight: bold;
-      font-size: 1.2em;
-      border-bottom: 2px solid #ff9cb3;
+      font-size: 1.15em;
+      border-bottom: 2px solid #ff8aaa;
+      box-shadow: 0 2px 6px rgba(255,150,179,0.3);
     }
-    .thought {
-      color: #888;
-      font-style: italic;
-      background-color: #f9f9f9;
-      padding: 6px;
-      border-radius: 6px;
-      margin-bottom: 6px;
-      font-size: 0.85em;
-      border: 1px solid #eee;
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
+    .agent-badge {
+      font-size: 0.55em;
+      font-weight: normal;
+      background: rgba(255,255,255,0.25);
+      border: 1px solid rgba(255,255,255,0.4);
+      border-radius: 10px;
+      padding: 2px 8px;
+      color: white;
+      letter-spacing: 0.03em;
+    }
+
+    /* ── Chat container ──────────────────────────────────────── */
     .chat-container {
       flex: 1;
       padding: 10px;
@@ -42,84 +52,237 @@
       flex-direction: column;
       gap: 10px;
     }
+
+    /* ── Messages ────────────────────────────────────────────── */
     .message {
-      max-width: 80%;
-      padding: 10px;
-      border-radius: 12px;
-      font-size: 0.95em;
-      line-height: 1.4;
+      max-width: 88%;
+      padding: 10px 12px;
+      border-radius: 14px;
+      font-size: 0.92em;
+      line-height: 1.5;
       word-wrap: break-word;
     }
     .message.user {
       align-self: flex-end;
       background-color: #f0f0f0;
       color: #333;
-      border-bottom-right-radius: 2px;
+      border-bottom-right-radius: 3px;
     }
     .message.yuuna {
       align-self: flex-start;
       background-color: #ffe4e1;
       color: #5a3d42;
-      border-bottom-left-radius: 2px;
+      border-bottom-left-radius: 3px;
     }
+    .message.system {
+      align-self: center;
+      background: transparent;
+      color: #aaa;
+      font-size: 0.78em;
+      font-style: italic;
+      text-align: center;
+      max-width: 95%;
+    }
+
+    /* ── Thought bubbles ─────────────────────────────────────── */
+    .thought {
+      color: #999;
+      font-style: italic;
+      background-color: #fafafa;
+      padding: 5px 8px;
+      border-radius: 6px;
+      margin-bottom: 5px;
+      font-size: 0.83em;
+      border: 1px solid #eee;
+    }
+
+    /* ── Agent progress container ────────────────────────────── */
+    .agent-progress {
+      max-width: 95%;
+      background: linear-gradient(135deg, #fff0f5, #fde8ee);
+      border: 1px solid #ffccd8;
+      border-radius: 12px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .agent-header {
+      font-size: 0.82em;
+      font-weight: 600;
+      color: #b55a6e;
+      margin-bottom: 4px;
+    }
+    .agent-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .agent-step {
+      font-size: 0.8em;
+      color: #7a5560;
+      display: flex;
+      align-items: flex-start;
+      gap: 5px;
+      padding: 2px 0;
+      line-height: 1.4;
+    }
+    .agent-step .step-dot {
+      flex-shrink: 0;
+      font-size: 0.85em;
+      margin-top: 1px;
+    }
+    .agent-step.active {
+      color: #c94f6d;
+      font-weight: 500;
+    }
+    .agent-step.active .step-dot {
+      animation: pulse 0.8s ease-in-out infinite alternate;
+    }
+    .agent-step.done {
+      color: #a0a0a0;
+      text-decoration: none;
+    }
+    .agent-step.done .step-dot {
+      color: #88c98e;
+    }
+    .agent-complete {
+      font-size: 0.82em;
+      font-weight: 600;
+      color: #4caf7d;
+      margin-top: 4px;
+    }
+    .agent-error-tag {
+      font-size: 0.8em;
+      color: #c0392b;
+      margin-top: 4px;
+    }
+
+    @keyframes pulse {
+      from { opacity: 1; transform: scale(1); }
+      to   { opacity: 0.5; transform: scale(0.9); }
+    }
+
+    /* ── Markdown table ──────────────────────────────────────── */
+    .agent-table-wrap {
+      overflow-x: auto;
+      margin: 6px 0;
+      border-radius: 8px;
+      border: 1px solid #ffccd5;
+    }
+    .agent-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82em;
+    }
+    .agent-table th {
+      background: #ffb6c1;
+      color: #5a1e2e;
+      padding: 6px 10px;
+      text-align: left;
+      border-bottom: 2px solid #ff9cb3;
+    }
+    .agent-table td {
+      padding: 5px 10px;
+      border-bottom: 1px solid #ffe4e8;
+      color: #4a3036;
+    }
+    .agent-table tr:last-child td {
+      border-bottom: none;
+    }
+    .agent-table tr:nth-child(even) td {
+      background: #fff6f8;
+    }
+
+    /* ── Input area ──────────────────────────────────────────── */
     .input-area {
       display: flex;
       padding: 10px;
       background-color: #ffffff;
       border-top: 1px solid #ffe4e1;
+      gap: 6px;
+      align-items: center;
     }
     .input-area input {
       flex: 1;
-      padding: 10px;
+      padding: 9px 14px;
       border: 1px solid #ffb6c1;
       border-radius: 20px;
       outline: none;
+      font-size: 0.9em;
+      background: #fffafb;
+      transition: border-color 0.2s;
+    }
+    .input-area input:focus {
+      border-color: #ff8aaa;
+      background: #fff;
     }
     .input-area button {
-      margin-left: 8px;
-      padding: 10px 15px;
-      background-color: #ffb6c1;
+      padding: 9px 16px;
+      background: linear-gradient(135deg, #ffb6c1, #ff9cb3);
       color: white;
       border: none;
       border-radius: 20px;
       cursor: pointer;
       font-weight: bold;
+      font-size: 0.88em;
+      box-shadow: 0 2px 5px rgba(255,140,170,0.3);
+      transition: all 0.18s;
     }
     .input-area button:hover {
-      background-color: #ff9cb3;
+      background: linear-gradient(135deg, #ff9cb3, #ff7ba3);
+      transform: translateY(-1px);
+      box-shadow: 0 3px 8px rgba(255,120,160,0.35);
     }
-    /* Simple CSS loading spinner */
+
+    /* ── Loader spinner ──────────────────────────────────────── */
     .loader {
-      border: 3px solid #f3f3f3;
-      border-top: 3px solid #ffb6c1;
+      border: 3px solid #ffe4e1;
+      border-top: 3px solid #ff9cb3;
       border-radius: 50%;
-      width: 14px;
-      height: 14px;
-      animation: spin 1s linear infinite;
-      align-self: center;
+      width: 16px;
+      height: 16px;
+      animation: spin 0.9s linear infinite;
+      flex-shrink: 0;
       display: none;
     }
     @keyframes spin {
-      0% { transform: rotate(0deg); }
+      0%   { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
+    }
+
+    /* ── Hint text ──────────────────────────────────────────── */
+    .hint {
+      font-size: 0.7em;
+      color: #c0a0a8;
+      text-align: center;
+      padding: 3px 0 5px;
     }
   </style>
 </head>
 <body>
   <div class="header">
     <div>Yuuna-chan ✨</div>
-    <label style="font-size: 0.6em; font-weight: normal; cursor: pointer;">
-      <input type="checkbox" id="toggleThoughts" /> Show Thoughts
-    </label>
+    <div class="header-right">
+      <span class="agent-badge">🤖 Agent</span>
+      <label style="font-size: 0.58em; font-weight: normal; cursor: pointer; color: rgba(255,255,255,0.9);">
+        <input type="checkbox" id="toggleThoughts" /> Thoughts
+      </label>
+    </div>
   </div>
+
   <div class="chat-container" id="chat">
-    <div class="message yuuna">Hey! I'm here. What are we looking at today?</div>
+    <div class="message yuuna">Hey! I'm here~ What do you need today? You can ask me anything, or say <strong>agent:</strong> to let me browse for you! 🌸</div>
   </div>
+
+  <div class="hint">Type <code>agent: your task</code> to start an agentic workflow</div>
+
   <div class="input-area">
-    <input type="text" id="userInput" placeholder="Say something or ask about the page..." autofocus>
+    <input type="text" id="userInput" placeholder="Chat or 'agent: find me...'" autofocus>
     <button id="sendBtn">Send</button>
     <div class="loader" id="loader"></div>
   </div>
+
   <script src="popup.js"></script>
 </body>
 </html>

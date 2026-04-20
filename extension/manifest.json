@@ -1,12 +1,13 @@
 {
   "manifest_version": 3,
   "name": "Yuuna-chan Companion",
-  "version": "1.0",
-  "description": "Your childhood friend AI companion, ready to browse the web with you.",
+  "version": "2.0",
+  "description": "Your childhood friend AI companion — now with full agentic browser control.",
   "permissions": [
     "activeTab",
     "scripting",
-    "storage"
+    "storage",
+    "tabs"
   ],
   "host_permissions": [
     "http://127.0.0.1:8000/*",
