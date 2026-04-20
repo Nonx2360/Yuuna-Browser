@@ -180,10 +180,15 @@ async def agent_step(request: AgentStepRequest):
     Returns one action tag for the agent to execute next.
     """
     try:
+        # REGRESSION FIX: Reducing context size to prevent gemma2b from returning empty actions
+        decision_page_state = re.sub(r"Page Text \(first \d+ chars\):.*", 
+                                     f"Page Text (first 1200 chars):\n{request.current_page_state[:1200]}", 
+                                     request.current_page_state)
+
         raw_action = await generate_agent_response(
             goal=request.goal,
             steps_taken=request.steps_taken,
-            current_page_state=request.current_page_state,
+            current_page_state=decision_page_state,
             system_prompt=AGENT_SYSTEM_PROMPT,
         )
 
@@ -197,6 +202,10 @@ async def agent_step(request: AgentStepRequest):
 
         if action_match:
             action_tag = action_match.group(0)
+        elif not raw_action.strip():
+            # If model returned absolutely nothing, force a READ_PAGE to wake it up
+            print("[Agent] Model returned empty string. Forcing READ_PAGE fallback.")
+            action_tag = "[ACTION: READ_PAGE]"
         else:
             # If model didn't follow format, force a DONE with its raw output as the answer
             print(f"[Agent] Model did not return valid action tag. Raw: {raw_action!r}")

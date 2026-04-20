@@ -373,7 +373,7 @@ class AgentLoop {
 
   // Observe the current page state (for AI context)
   async _observe() {
-    await this._sleep(600); // Give the DOM a moment to settle
+    await this._sleep(1000); // Give the DOM more time to settle (increased for reliability)
 
     // Use the same retry-inject mechanism as _execContent
     const raw = await this._sendToContent({ type: "AGENT_OBSERVE" });
@@ -504,16 +504,14 @@ Scroll: ${pageState.scroll_position || 0} / ${pageState.scroll_height || 0}`.tri
       return;
     }
 
-    // Stream the synthesis via the normal chat endpoint
-    const context = `I just browsed the web for the user's goal. Here is all the raw data I collected:\n\n${collectedData.substring(0, 7000)}\n\nUsing ONLY this data, answer the user's goal. Do not say you browsed the web — just give the answer naturally in Yuuna's warm voice.`;
-
+    // Stream the synthesis via the dedicated synthesis endpoint
     try {
-      const response = await fetch("http://127.0.0.1:8000/api/chat_stream", {
+      const response = await fetch("http://127.0.0.1:8000/api/synthesize", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          messages: [{ role: "user", content: this.goal }],
-          context,
+          goal:           this.goal,
+          collected_data: collectedData,
         }),
       });
 
@@ -569,9 +567,12 @@ Scroll: ${pageState.scroll_position || 0} / ${pageState.scroll_height || 0}`.tri
 
   _cleanupTab() {
     if (this.agentTabId !== null) {
+      console.log("[Agent] Task finished. Keeping agent tab open for verification.");
+      /*
       chrome.tabs.remove(this.agentTabId, () => {
-        if (chrome.runtime.lastError) { /* tab may already be closed */ }
+        if (chrome.runtime.lastError) { }
       });
+      */
       this.agentTabId = null;
     }
   }
