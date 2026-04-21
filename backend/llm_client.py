@@ -3,6 +3,10 @@ import json
 import httpx
 from pydantic import BaseModel
 from typing import List, Optional
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 OLLAMA_API_URL = os.environ.get("OLLAMA_API_URL", "http://127.0.0.1:11434")
 MODEL_NAME = os.environ.get("MODEL_NAME", "gemma4:e2b")

@@ -6,6 +6,10 @@ from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 from llm_client import generate_response, generate_response_stream, generate_agent_response, Message
 
@@ -57,52 +61,28 @@ Do NOT explain these tags to the user. Only use them when explicitly asked to pe
 # =============================================
 # AGENT SYSTEM PROMPT (strict ReAct agent)
 # =============================================
-AGENT_SYSTEM_PROMPT = """You are an autonomous browser agent named Yuuna. Complete the user's goal by controlling the browser step by step.
+AGENT_SYSTEM_PROMPT = """You are Yuuna, an autonomous browser agent. Complete the user's goal step-by-step.
 
-## STRICT RESPONSE FORMAT
-- Output EXACTLY ONE action line.
-- START YOUR RESPONSE DIRECTLY WITH THE OPENING BRACKET [.
-- DO NOT SAY "Sure!", "Thinking:", OR ANY OTHER CHAT.
-- DO NOT EXPLAIN YOUR ACTIONS.
-- IF YOU DO NOT FOLLOW THIS FORMAT, YOU WILL FAIL.
-
+## ACTIONS
 [ACTION: NAVIGATE | https://url]
 [ACTION: GOOGLE_SEARCH | query]
 [ACTION: CLICK | text or selector]
 [ACTION: TYPE | selector | text]
 [ACTION: SCROLL | down]
-[ACTION: SCROLL | up]
 [ACTION: READ_PAGE]
-[ACTION: EXTRACT | selector]
-[ACTION: DONE | full answer here]
+[ACTION: DONE | friendly answer with data]
 
-## CRITICAL RULES — READ CAREFULLY
+## RULES
+1. Output ONLY the action tag. Start with [. No chat or thinking.
+2. If you navigate to a page, you MUST use READ_PAGE before DONE.
+3. DONE must contain the actual information found (titles, facts, etc.).
+4. Use the site's own search bar if you are already on the site.
+5. TYPE automatically presses Enter. For Wikipedia, use #searchInput.
+6. If stuck, try SCROLL or a different CLICK.
 
-1. **NEVER say DONE without reading the page first.**
-   - If you navigated somewhere, you MUST use READ_PAGE or EXTRACT before DONE.
-   - DONE with no content = failure. Always include the actual data in DONE.
-
-2. **DONE must contain the real answer** — not "Task complete" or "Done".
-   - BAD:  [ACTION: DONE | Task complete!]
-   - GOOD: [ACTION: DONE | Here are the top 5 posts on r/gaming: 1. "Post title" (5.2k upvotes) 2. ...]
-
-3. **Workflow for information tasks (summaries, lists, prices):**
-   Step 1 → NAVIGATE or GOOGLE_SEARCH to the target page
-   Step 2 → READ_PAGE to get its content (wait for page to load)
-   Step 3 → DONE with the full answer based on what you read
-
-4. **Detour Rule**: If the user asks you to go to a specific site (e.g. Wikipedia, Amazon), STAY ON THAT SITE. Do not use GOOGLE_SEARCH once you are there. Use the search bar on the site.
-
-5. **Searching & Typing**: The [ACTION: TYPE] command automatically presses Enter for you. 
-   - ALWAYS look for input elements with IDs like "search", "query", or "q".
-   - For Wikipedia, the search box is usually "#searchInput".
-
-6. **One action per response. No explanations. No markdown outside DONE.**
-
-## DONE answer style
-Write in Yuuna's voice — warm, friendly, slightly playful. Use lists or tables when presenting structured data.
-Example:
-[ACTION: DONE | Okay, here's what I found on r/gaming~! 🎮\n\n1. **"Game of the Year" discussion** — 12k upvotes\n2. **"This bug made me rage-quit"** — 8.4k upvotes\n3. **"My 1000-hour review"** — 6.1k upvotes\n\nLooks like the community is pretty lively today! ✨]
+## DONE STYLE
+Warm and playful voice. Use lists for data.
+Example: [ACTION: DONE | I found these top stories for you~! ✨\n- Story 1\n- Story 2]
 """
 
 
@@ -178,22 +158,42 @@ async def agent_step(request: AgentStepRequest):
     Single-step agentic decision endpoint with improved loop protection.
     """
     try:
-        # REGRESSION FIX: Reducing context size to prevent gemma2b from returning empty actions
-        decision_page_state = re.sub(r"Page Text \(first \d+ chars\):.*", 
-                                     f"Page Text (first 1200 chars):\n{request.current_page_state[:1200]}", 
-                                     request.current_page_state)
+        # IMPROVED REGRESSION FIX: Instead of buggy regex, we slice the text more cleanly
+        # We look for the "Page Text" marker and truncate it properly.
+        current_state = request.current_page_state
+        if "Page Text (first 4000 chars):" in current_state:
+            parts = current_state.split("Page Text (first 4000 chars):")
+            header = parts[0]
+            content_and_footer = parts[1]
+            
+            # Split footer (Interactive Elements)
+            footer_marker = "\n\nInteractive Elements:"
+            if footer_marker in content_and_footer:
+                content_parts = content_and_footer.split(footer_marker)
+                page_text = content_parts[0].strip()
+                footer = footer_marker + content_parts[1]
+            else:
+                page_text = content_and_footer.strip()
+                footer = ""
+            
+            # Truncate page text to 1000 chars for small models
+            truncated_text = page_text[:1000]
+            decision_page_state = f"{header}Page Text (truncated to 1000 chars):\n{truncated_text}\n{footer}"
+        else:
+            decision_page_state = current_state[:2000] # Fallback truncation
 
         # Loop protection: if the last 3 steps were all [READ_PAGE], 
         # add a warning to the observation to wake the agent up.
         consecutive_reads = 0
         for s in reversed(request.steps_taken):
-            if "[ACTION: READ_PAGE]" in s.get("action", "") or "READ_PAGE" in s.get("action", ""):
+            last_action = s.get("action", "")
+            if "[ACTION: READ_PAGE]" in last_action or "READ_PAGE" in last_action:
                 consecutive_reads += 1
             else:
                 break
         
         if consecutive_reads >= 3:
-            decision_page_state += "\n\nCRITICAL WARNING: You have read this same page 3 times in a row without making progress. DO NOT use READ_PAGE again. Try a different action like CLICK, TYPE_ENTER, or NAVIGATE to move forward!"
+            decision_page_state += "\n\nCRITICAL WARNING: You have read this same page 3 times in a row without making progress. DO NOT use READ_PAGE again. Try a different action like CLICK, TYPE, or NAVIGATE to move forward!"
 
         raw_action = await generate_agent_response(
             goal=request.goal,
@@ -203,7 +203,6 @@ async def agent_step(request: AgentStepRequest):
         )
 
         # REGRESSION FIX: Handling truncation errors from small models
-        # If the model gets cut off or forgets the closing bracket, we repair it
         if raw_action.startswith("[ACTION:") and "]" not in raw_action:
             print(f"[Agent] Repairing truncated action tag: {raw_action!r}")
             raw_action += "]"
@@ -218,9 +217,13 @@ async def agent_step(request: AgentStepRequest):
         if action_match:
             action_tag = action_match.group(0)
         elif not raw_action.strip():
-            # If model returned absolutely nothing, force a READ_PAGE and add a hint for the next step
-            print("[Agent] Model returned empty string. Forcing READ_PAGE fallback.")
-            action_tag = "[ACTION: READ_PAGE]"
+            # If model returned absolutely nothing, force a READ_PAGE or DONE if we've tried too many times
+            if consecutive_reads >= 2:
+                print("[Agent] Model returned empty string repeatedly. Forcing DONE fallback.")
+                action_tag = "[ACTION: DONE | I'm having a little trouble navigating this page~ Could you try being more specific?]"
+            else:
+                print("[Agent] Model returned empty string. Forcing READ_PAGE fallback.")
+                action_tag = "[ACTION: READ_PAGE]"
         else:
             # If model didn't follow format, force a DONE with its raw output
             print(f"[Agent] Model did not return valid action tag. Raw: {raw_action!r}")
