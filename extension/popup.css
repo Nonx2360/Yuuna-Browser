@@ -1,0 +1,310 @@
+/* popup.css — Yuuna-chan Premium UI Styles */
+
+body {
+  width: 100%;
+  height: 100vh;
+  margin: 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  display: flex;
+  flex-direction: column;
+  background-color: #fff9fa;
+  overflow: hidden;
+  color: #4a3a3e;
+}
+
+/* ── Header ─────────────────────────────────────────────── */
+.header {
+  background: linear-gradient(135deg, #ff9eb5, #ff82a3);
+  color: white;
+  padding: 16px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 12px rgba(255, 130, 163, 0.25);
+  z-index: 10;
+}
+.header-title {
+  font-size: 1.15em;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.agent-badge {
+  font-size: 0.6em;
+  font-weight: 700;
+  text-transform: uppercase;
+  border: 1.5px solid rgba(255, 255, 255, 0.6);
+  border-radius: 20px;
+  padding: 2px 10px;
+  color: white;
+  letter-spacing: 0.05em;
+}
+
+/* ── Custom Thoughts Toggle (Pill Switch) ────────────────── */
+.toggle-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.toggle-label {
+  font-size: 0.7em;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  cursor: pointer;
+}
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 32px;
+  height: 18px;
+}
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: rgba(255,255,255,0.3);
+  transition: .3s;
+  border-radius: 18px;
+}
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 14px;
+  width: 14px;
+  left: 2px;
+  bottom: 2px;
+  background-color: white;
+  transition: .3s;
+  border-radius: 50%;
+}
+input:checked + .slider {
+  background-color: #ff4d7a;
+}
+input:checked + .slider:before {
+  transform: translateX(14px);
+}
+
+/* ── Chat container & Messages ───────────────────────────── */
+.chat-container {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  scrollbar-width: thin;
+  scrollbar-color: #ffccd8 transparent;
+}
+.chat-container::-webkit-scrollbar { width: 6px; }
+.chat-container::-webkit-scrollbar-thumb { background: #ffccd8; border-radius: 10px; }
+
+.message {
+  max-width: 80%;
+  padding: 12px 16px;
+  font-size: 0.95em;
+  line-height: 1.55;
+  word-wrap: break-word;
+  position: relative;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+}
+
+.message.user {
+  align-self: flex-end;
+  background-color: #ffe8ee;
+  color: #5a1e2e;
+  border-radius: 18px 18px 4px 18px;
+  border: 1px solid #ffdde6;
+}
+
+.message.yuuna {
+  align-self: flex-start;
+  background-color: #ffffff;
+  color: #3e2a2e;
+  border-radius: 18px 18px 18px 4px;
+  border: 1px solid #f0e0e4;
+}
+
+.message.system {
+  align-self: center;
+  background: #fdf2f4;
+  color: #b58d97;
+  font-size: 0.72em;
+  font-style: normal;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 6px 14px;
+  border-radius: 20px;
+  max-width: 90%;
+  box-shadow: none;
+  border: 1px solid #fae1e6;
+}
+
+/* ── Thought bubbles ─────────────────────────────────────── */
+.thought {
+  color: #947a82;
+  font-style: italic;
+  background-color: #fffafa;
+  padding: 10px 14px;
+  border-radius: 12px;
+  margin-bottom: 8px;
+  font-size: 0.88em;
+  border-left: 4px solid #ffccd8;
+}
+
+/* ── Agent Progress (The Card) ───────────────────────────── */
+.agent-progress {
+  max-width: 90% !important;
+  background: #ffffff !important;
+  border: 1px solid #ffccd8 !important;
+  border-radius: 16px !important;
+  padding: 16px !important;
+  box-shadow: 0 4px 15px rgba(255, 120, 160, 0.08) !important;
+}
+.agent-header {
+  font-size: 0.88em;
+  font-weight: 700;
+  color: #d15672;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px dashed #ffe4ea;
+}
+.agent-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.agent-step {
+  font-size: 0.9em;
+  color: #8c7078;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  transition: all 0.2s;
+}
+.agent-step .step-dot {
+  flex-shrink: 0;
+  width: 18px;
+  text-align: center;
+  font-weight: bold;
+}
+.agent-step.active {
+  color: #ff4d7a;
+  font-weight: 700;
+  padding-left: 10px;
+  border-left: 3px solid #ff4d7a;
+}
+.agent-step.done {
+  opacity: 0.5;
+  font-size: 0.85em;
+}
+.agent-complete {
+  font-size: 0.85em;
+  font-weight: 700;
+  color: #4caf7d;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid #f0f7f3;
+}
+.agent-error-tag {
+  font-size: 0.85em;
+  color: #c0392b;
+  margin-top: 10px;
+}
+
+/* ── Table Styling ────────────────────────────────────────── */
+.agent-table-wrap {
+  margin: 14px 0;
+  border-radius: 12px;
+  border: 1px solid #ffccd8;
+  overflow: hidden;
+}
+.agent-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85em;
+}
+.agent-table th {
+  background: #fff0f3;
+  color: #d15672;
+  padding: 12px;
+  text-align: left;
+}
+.agent-table td {
+  padding: 10px 12px;
+  border-top: 1px solid #fff0f3;
+  color: #4a3a3e;
+}
+
+/* ── Input Bar ───────────────────────────────────────────── */
+.hint {
+  font-size: 0.75em;
+  color: #c0a8ae;
+  text-align: center;
+  padding: 10px 0;
+  background: #fff;
+}
+.input-area {
+  display: flex;
+  padding: 16px 20px 24px;
+  background-color: #ffffff;
+  border-top: 1px solid #fce4ec;
+  gap: 12px;
+  align-items: center;
+  box-shadow: 0 -8px 20px rgba(0,0,0,0.02);
+}
+.input-area input {
+  flex: 1;
+  padding: 13px 20px;
+  border: 1.5px solid #ffccd8;
+  border-radius: 25px;
+  outline: none;
+  font-size: 0.95em;
+  background: #fffafb;
+  transition: all 0.25s ease;
+}
+.input-area input:focus {
+  border-color: #ff82a3;
+  box-shadow: 0 0 0 3px rgba(255, 130, 163, 0.15);
+  background: #fff;
+}
+.input-area input::placeholder {
+  color: #d0b8be;
+}
+.input-area button {
+  padding: 11px 22px;
+  background: linear-gradient(135deg, #ff9eb5, #ff82a3);
+  color: white;
+  border: none;
+  border-radius: 25px;
+  cursor: pointer;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(255,130,163,0.3);
+  transition: all 0.2s;
+}
+.input-area button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(255,130,163,0.4);
+}
+
+/* ── Loader ─────────────────────────────────────────────── */
+.loader {
+  border: 3px solid #ffccd8;
+  border-top: 3px solid #ff4d7a;
+  border-radius: 50%;
+  width: 22px;
+  height: 22px;
+  animation: spin 0.8s linear infinite;
+  display: none;
+}
+@keyframes spin { 100% { transform: rotate(360deg); } }

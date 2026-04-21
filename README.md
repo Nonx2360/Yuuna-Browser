@@ -5,10 +5,11 @@
   <img src="https://img.shields.io/badge/FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white" />
   <img src="https://img.shields.io/badge/Chrome%20Extension-4285F4?style=flat-square&logo=google-chrome&logoColor=white" />
   <img src="https://img.shields.io/badge/Manifest%20V3-FF6B6B?style=flat-square" />
+  <img src="https://img.shields.io/badge/Agentic-AI-9B59B6?style=flat-square" />
   <img src="https://img.shields.io/badge/Privacy-First-2ECC71?style=flat-square" />
 </p>
 
-Yuuna-Browser is an **AI-powered browser companion** that integrates locally-run Large Language Models (LLMs) with dynamic browser control capabilities. It features a fully immersive, agentic persona (Yuuna-chan) that can "see" what you're browsing and actively help navigate the web — all while running entirely on your local machine for maximum privacy.
+Yuuna-Browser is an **Autonomous Browser Agent** that combines the warmth of a childhood friend persona (Yuuna-chan) with advanced agentic control capabilities. Built to run entirely on your local machine via Ollama, it can navigate, search, click, type, and synthesize information from the web—all while preserving your privacy. Now featuring a seamless **Chrome Side Panel** interface for uninterrupted browsing.
 
 ---
 
@@ -39,13 +40,13 @@ Yuuna-Browser is an **AI-powered browser companion** that integrates locally-run
 
 ## Architecture Overview
 
-Yuuna-Browser operates as a **distributed client-server architecture** with two primary domains:
+Yuuna-Browser operates as a **distributed agentic system** with three primary layers:
 
-| Domain | Technology | Purpose |
+| Layer | Technology | Purpose |
 |--------|------------|---------|
-| **Backend** | Python + FastAPI | AI inference, natural language processing, action orchestration |
-| **Frontend** | Chrome Extension (Manifest V3) | User interface, browser automation, context extraction |
-| **LLM Engine** | Ollama (Local) | On-device model inference (default: `gemma4:e2b`) |
+| **Backend** | Python + FastAPI | Agent orchestration, ReAct loop management, action parsing |
+| **Frontend** | Chrome Side Panel (MV3) | Persistent chat interface, multi-tab coordination, DOM control |
+| **LLM Engine** | Ollama (Local) | Local inference (Model: `gemma4:e2b`) with low-latency streaming |
 
 ### System Architecture Diagram
 
@@ -57,62 +58,46 @@ Yuuna-Browser operates as a **distributed client-server architecture** with two 
 │  ┌─────────────────────────────────────────────────────────────────────────┐│
 │  │                         CHROMIUM BROWSER                                ││
 │  │  ┌─────────────────┐  ┌─────────────────┐  ┌────────────────────────┐ ││
-│  │  │   POPUP UI      │  │  CONTENT SCRIPT │  │   SERVICE WORKER       │ ││
+│  │  │   SIDE PANEL    │  │  CONTENT SCRIPT │  │   SERVICE WORKER       │ ││
 │  │  │  (popup.html)   │  │   (content.js)  │  │    (background.js)     │ ││
 │  │  │  ┌───────────┐  │  │                 │  │                        │ ││
-│  │  │  │ popup.js  │◄─┼──┼─► Extracts    │  │  ┌──────────────────┐  │ ││
-│  │  │  │           │  │  │    page context │  │  │ Message Handler  │  │ ││
+│  │  │  │ popup.js  │◄─┼──┼─► Reads DOM     │  │  ┌──────────────────┐  │ ││
+│  │  │  │           │  │  │    & Page state  │  │  │ Message Broker   │  │ ││
 │  │  │  │ • Chat UI │  │  │                 │  │  │ • Action Parser  │  │ ││
-│  │  │  │ • History │  │  │  URL, Title,    │  │  │ • Tab Controller │  │ ││
-│  │  │  │ • Stream  │◄─┼──┼─► Text Content  │  │  │ • History Store  │  │ ││
+│  │  │  │ • Agent   │  │  │  Injects Events │  │  │ • Tab Controller │  │ ││
+│  │  │  │   Control │◄─┼──┼─► (click/type)  │  │  │ • Agent Loop Mgr │  │ ││
 │  │  │  └───────────┘  │  │                 │  │  └────────┬─────────┘  │ ││
 │  │  └─────────────────┘  └─────────────────┘  └─────────│──────────────┘ ││
 │  │           ▲                                         │                ││
 │  │           │            Chrome Runtime APIs           │                ││
 │  └───────────┼──────────────────────────────────────────┼────────────────┘│
 │              │                                          │                 │
-│              │ HTTP/SSE Stream                          │ Chrome API      │
-│              │ (localhost:8000)                       │ (tabs.create)   │
+│              │ HTTP/SSE Stream                          │ Agent Actions   │
+│              │ (localhost:8000)                       │ (tabs/scripting)│
 │              ▼                                          ▼                 │
 │  ┌─────────────────────────────────────────────────────────────────────────┐│
 │  │                      FASTAPI BACKEND (Python)                         ││
 │  │  ┌─────────────────────────────────────────────────────────────────┐  ││
 │  │  │                        main.py                                  │  ││
 │  │  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────┐ │  ││
-│  │  │  │ /api/chat    │  │ /api/chat_   │  │    /api/health       │ │  ││
-│  │  │  │              │  │    stream    │  │                      │ │  ││
-│  │  │  │ • REST API   │  │ • SSE Stream │  │  Health check        │ │  ││
-│  │  │  │ • Action     │  │ • Real-time  │  │                      │ │  ││
-│  │  │  │   Extraction │  │   response   │  └──────────────────────┘ │  ││
-│  │  │  └──────┬───────┘  └──────┬───────┘                           │  ││
-│  │  │         │                 │                                   │  ││
-│  │  │         └────────┬────────┘                                   │  ││
-│  │  │                  ▼                                            │  ││
+│  │  │  │ /api/chat    │  │ /api/agent_  │  │    /api/synthesize   │ │  ││
+│  │  │  │              │  │    step      │  │                      │ │  ││
+│  │  │  │ • SSE Stream │  │ • ReAct Logic │  │ • Data Compilation   │ │  ││
+│  │  │  │ • Personality│  │ • Loop Prot.  │  │ • Final Report       │ │  ││
+│  │  │  └──────┬───────┘  └──────┬───────┘  └──────────┬───────────┘ │  ││
+│  │  │         │                 │                     │             │  ││
+│  │  │         └────────┬────────┴──────────┬──────────┘             │  ││
+│  │  │                  ▼                   ▼                        │  ││
 │  │  │  ┌────────────────────────────────────────────────────────┐  │  ││
 │  │  │  │                   llm_client.py                         │  │  ││
-│  │  │  │  ┌─────────────┐      ┌─────────────┐                   │  │  ││
-│  │  │  │  │  generate_  │      │  generate_  │                   │  │  ││
-│  │  │  │  │  response() │      │  response_  │                   │  │  ││
-│  │  │  │  │             │      │  stream()   │                   │  │  ││
-│  │  │  │  │  Blocking   │      │  Streaming  │                   │  │  ││
-│  │  │  │  └──────┬──────┘      └──────┬──────┘                   │  │  ││
-│  │  │  └─────────│───────────────────│────────────────────────────┘  │  ││
-│  │  └────────────│───────────────────│───────────────────────────────┘  ││
-│  │               │                   │                                    ││
-│  │               │  HTTP POST        │  HTTP POST                       ││
-│  │               │  /api/chat        │  /api/chat (stream=True)         ││
-│  │               ▼                   ▼                                    ││
+│  │  │  └───────────────────────┬────────────────────────────────┘  │  ││
+│  │  └──────────────────────────│───────────────────────────────────┘  ││
+│  │                             ▼                                       ││
+│  │               HTTP POST /api/chat (Ollama)                          ││
+│  │                                                                     ││
 │  │  ┌────────────────────────────────────────────────────────────────┐  ││
 │  │  │                      OLLAMA (Local LLM)                        │  ││
-│  │  │                 Default: gemma4:e2b @ :11434                    │  ││
-│  │  │                                                                  │  ││
-│  │  │  ┌──────────────────────────────────────────────────────────┐ │  ││
-│  │  │  │ systemprompt.txt + Browser Context + User Message        │ │  ││
-│  │  │  │                    ↓                                     │ │  ││
-│  │  │  │              LLM Inference                               │ │  ││
-│  │  │  │                    ↓                                     │ │  ││
-│  │  │  │  Response + [ACTION: TYPE | payload]                   │ │  ││
-│  │  │  └──────────────────────────────────────────────────────────┘ │  ││
+│  │  │                 Model: gemma4:e2b @ :11434                   │  ││
 │  │  └────────────────────────────────────────────────────────────────┘  ││
 │  └─────────────────────────────────────────────────────────────────────┘│
 └─────────────────────────────────────────────────────────────────────────────┘
@@ -220,22 +205,21 @@ Yuuna-Browser operates as a **distributed client-server architecture** with two 
 Browser_YUUNA/
 │
 ├── 📁 backend/                    # FastAPI Python Backend
-│   ├── main.py                    # API endpoints & action parsing
-│   ├── llm_client.py              # Ollama LLM integration
-│   ├── requirements.txt           # Python dependencies
-│   └── __pycache__/               # Compiled Python cache
+│   ├── main.py                    # Agentic logic & loop management
+│   ├── llm_client.py              # Ollama interaction layer
+│   └── requirements.txt           # Python dependencies
 │
 ├── 📁 extension/                  # Chrome Extension (Manifest V3)
-│   ├── manifest.json              # Extension configuration
-│   ├── background.js              # Service worker (core logic)
-│   ├── content.js                 # Page context extraction
-│   ├── popup.html                 # Extension UI markup
-│   └── popup.js                   # Extension UI logic
+│   ├── manifest.json              # Side Panel & Permissions config
+│   ├── background.js              # State manager & Action runner
+│   ├── content.js                 # DOM Observer & Interaction script
+│   ├── popup.html                 # Side Panel UI Markup
+│   └── popup.js                   # UI Logic & Streaming handler
 │
-├── systemprompt.txt               # Yuuna-chan personality definition
-├── LICENSE                        # License file
-├── README.md                      # This file
-├── .gitignore                     # Git ignore rules
+├── systemprompt.txt               # Yuuna-chan base personality
+├── LICENSE                        # Project License
+├── README.md                      # Documentation
+├── .gitignore                     # Git exclusion rules
 └── venv/                          # Python virtual environment
 ```
 
@@ -350,22 +334,24 @@ Tokens    Chunks         Event Stream   Parse chunks   Render in DOM
 
 ### Backend (FastAPI)
 
-#### `main.py` - API Layer
+#### `main.py` - AI Orchestration Layer
 
 | Endpoint | Method | Purpose |
 |----------|--------|---------|
-| `/api/health` | GET | Health check endpoint |
-| `/api/chat` | POST | Synchronous chat (blocking) |
-| `/api/chat_stream` | POST | Streaming chat (SSE) |
+| `/api/chat` | POST | Persona-driven chat with SSE streaming |
+| `/api/agent_step` | POST | Decision engine for autonomous actions (ReAct) |
+| `/api/synthesize` | POST | Final data compilation & friendly reporting |
+| `/api/health` | GET | System status & agent availability check |
 
-**Key Functions:**
-- `get_system_prompt()` - Loads and injects action instructions into base prompt
-- `chat()` - Non-streaming endpoint with action extraction
-- `chat_stream()` - Streaming endpoint for real-time responses
+**Key Capabilities:**
+- **Persona Injection**: Loads `systemprompt.txt` at runtime for immediate personality updates.
+- **Loop Protection**: Prevents the agent from getting stuck in repetitive `READ_PAGE` cycles.
+- **Truncation Repair**: Automatically fixes malformed action tags from smaller LLMs.
+- **Context Management**: Dynamically trims page text to fit local model context windows.
 
-**Action Extraction Regex:**
+**Supported Action Schema:**
 ```python
-r"\[ACTION:\s*(NAVIGATE)\s*\|\s*(.*?)\]"
+r"\[ACTION:\s*(\w+)\s*(?:\|\s*([\s\S]*?))?\]"
 ```
 
 #### `llm_client.py` - LLM Integration
@@ -549,11 +535,13 @@ INFO:     Uvicorn running on http://127.0.0.1:8000
 2. Enable **Developer mode** (toggle in top-right)
 3. Click **Load unpacked**
 4. Select the `extension/` folder from this repository
-5. Pin the extension to your toolbar (optional)
+5. **Open the Side Panel**:
+   - Right-click the extension icon or click the Side Panel button in the browser toolbar.
+   - Select **Yuuna-chan Companion** from the dropdown.
 
 **Verification:**
-- Extension icon should appear in toolbar
-- Clicking should open popup with "Hey! I'm here. What are we looking at today?"
+- Yuuna should appear in the side panel.
+- Ask her to "Search for something on Wikipedia" to test the agentic loop.
 
 ---
 
@@ -591,54 +579,54 @@ Edit `systemprompt.txt` to modify Yuuna-chan's behavior. The file is loaded at r
 ### Endpoints
 
 #### `GET /api/health`
-Health check endpoint.
+Checks the backend status and agent availability.
 
 **Response:**
 ```json
 {
   "status": "ok",
-  "message": "Yuuna-chan Backend is running."
+  "message": "Yuuna-chan Backend is running.",
+  "agent_enabled": true
 }
 ```
 
 #### `POST /api/chat`
-Non-streaming chat endpoint.
+Persona-driven chat endpoint with SSE streaming support.
 
 **Request Body:**
 ```json
 {
-  "messages": [
-    { "role": "user", "content": "Hello Yuuna!" }
-  ],
+  "messages": [{ "role": "user", "content": "Hello Yuuna!" }],
   "context": "URL: https://example.com\nTitle: Example"
+}
+```
+
+#### `POST /api/agent_step`
+The core decision engine for the autonomous agent. Processes the current page state and history to decide the next action.
+
+**Request Body:**
+```json
+{
+  "goal": "Find the price of X",
+  "steps_taken": [...],
+  "current_page_state": "DOM Snapshot..."
 }
 ```
 
 **Response:**
 ```json
+{ "action": "[ACTION: CLICK | #buy-button]" }
+```
+
+#### `POST /api/synthesize`
+Compiles all collected data into a final, friendly report in Yuuna's voice.
+
+**Request Body:**
+```json
 {
-  "response": "Hey there! *smiles* Remember when we used to...",
-  "action": {
-    "type": "NAVIGATE",
-    "url": "https://google.com"
-  }
+  "goal": "What was the price?",
+  "collected_data": "Raw text from all visited pages..."
 }
-```
-
-#### `POST /api/chat_stream`
-Streaming chat endpoint (Server-Sent Events).
-
-**Request Body:** Same as `/api/chat`
-
-**Response Format:**
-```
-data: {"chunk": "Hello"}
-
-data: {"chunk": " there"}
-
-data: {"chunk": "!"}
-
-data: {"error": "..."}  // If error occurs
 ```
 
 ---
