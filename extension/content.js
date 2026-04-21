@@ -5,12 +5,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
   // ── Existing: Chat context for normal conversation ───────────────────────
   if (request.type === "GET_CONTEXT") {
-    let pageText = document.body.innerText;
-    pageText = pageText.replace(/\s+/g, ' ').trim();
+    const contextText = extractPageText();
     const context = `
       URL: ${window.location.href}
       Title: ${document.title}
-      Content Snippet: ${pageText.substring(0, 3000)}
+      Content Snippet: ${contextText.substring(0, 4000)}
     `;
     sendResponse({ context });
     return true;
@@ -302,18 +301,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   // Returns a large text blob for deep content analysis
   if (request.type === "AGENT_READ") {
     try {
-      // Try to find the main content area first (avoids nav/footer noise)
-      const mainEl =
-        document.querySelector('article, main, [role="main"], #content, .content, .post-body') ||
-        document.body;
-
-      let text = (mainEl.innerText || '').replace(/\s+/g, ' ').trim();
+      const text = extractPageText();
 
       sendResponse({
         success: true,
         url:   window.location.href,
         title: document.title,
-        text:  text.substring(0, 8000),
+        text:  text.substring(0, 10000),
       });
     } catch (e) {
       sendResponse({ success: false, error: e.message });
@@ -324,6 +318,45 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   return true; // Keep message channel open for async responses
 });
 
+
+// ── Helper: Extract rich context (Gmail/Docs specific) ─────────────────────
+function extractPageText() {
+  const host = window.location.hostname;
+
+  // Gmail Extraction
+  if (host.includes('mail.google.com')) {
+    const subject = document.querySelector('.hP')?.innerText || '';
+    const emailBodies = document.querySelectorAll('.a3s.aiL');
+    if (emailBodies.length > 0) {
+      let text = `--- GMAIL (Subject: ${subject}) ---\n`;
+      emailBodies.forEach((el, idx) => {
+        text += `\n[Message ${idx + 1}]:\n${el.innerText}\n`;
+      });
+      return text;
+    }
+  }
+
+  // Google Docs Extraction
+  if (host.includes('docs.google.com')) {
+    const lines = document.querySelectorAll('.kix-lineview-text-block');
+    if (lines.length > 0) {
+      return "--- GOOGLE DOCS CONTENT ---\n" + Array.from(lines).map(l => l.innerText).join('\n');
+    } else {
+      // Force accessibility/HTML mode via script injection for future reads
+      if (!document.getElementById('yuuna-force-html')) {
+        const script = document.createElement('script');
+        script.id = 'yuuna-force-html';
+        script.textContent = "window._docs_force_html_by_ext = 'yuuna';";
+        (document.head || document.documentElement).appendChild(script);
+      }
+      return "--- GOOGLE DOCS CONTENT ---\n(Google Docs is in Canvas mode. Forced HTML mode. Try scrolling to load text, or use accessibility settings.) " + (document.body.innerText || '').substring(0, 2000);
+    }
+  }
+
+  // Default: Generic extraction
+  const mainEl = document.querySelector('article, main, [role="main"], #content, .content, .post-body') || document.body;
+  return (mainEl.innerText || '').replace(/\s+/g, ' ').trim();
+}
 
 // ── Helper: build a short CSS selector for an element ───────────────────────
 function _buildSelector(el) {
